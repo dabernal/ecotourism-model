@@ -54,11 +54,14 @@ EcoTPlot >> bufferB: anObject [
 { #category : 'initialization' }
 EcoTPlot >> calculateGrowth [
 
-	| neighboursGrassA neighboursGrassB changeGrassA changeGrassB |
+	| neighboursGrassA neighboursGrassB changeGrassA changeGrassB  |
+	
+	
+	
+	neighboursGrassA := (self neighbourhood collect: [ :c | c grassA ]) average.
 
-	neighboursGrassA := self neighbourhood sum: [ :c | c grassA ].
-
-	neighboursGrassB := self neighbourhood sum: [ :c | c grassB ].
+	neighboursGrassB := (self neighbourhood collect: [ :c | c grassB ])  average.
+	
 
 
 	changeGrassA := rCoef

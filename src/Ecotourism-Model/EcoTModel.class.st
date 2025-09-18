@@ -31,21 +31,28 @@ EcoTModel class >> numberOfTourists: anObject [
 EcoTModel >> biomassSize [
 
 	<probeNamed: 'biomass size' color: '0E0EDE'>
-	^ self cells sum: [ :c | c biomass ]
+	^ (self cells collect: [ :c | c biomass ]) average
+]
+
+{ #category : 'probes' }
+EcoTModel >> deerTouristEncounters [
+
+	<probeNamed: 'Deer encounters' color: '19DE0E'>
+	^ ((self @@ EcoTTourist  ) sum: [ :c | c deersHumanEncounters ]) / 20
 ]
 
 { #category : 'probes' }
 EcoTModel >> grassASize [
 
-	<probeNamed: 'grass A size' color: '19DE0E'>
-	^ self cells sum: [ :c | c grassA ]
+	<probeNamed: 'grass A size' color: 'C0392B'>
+	^ (self cells collect: [ :c | c grassA ]) average
 ]
 
 { #category : 'probes' }
 EcoTModel >> grassBsize [
 
-	<probeNamed: 'grass B size' color: 'C0392B'>
-	^ self cells sum: [ :c | c grassB ]
+	<probeNamed: 'grass B size' color: '19DE0E'>
+	^ (self cells collect: [ :c | c grassB ]) average
 ]
 
 { #category : 'as yet unclassified' }
@@ -72,10 +79,44 @@ EcoTModel >> modelName [
 EcoTModel >> numberOfDeers [
 
 	<probeNamed: 'deers' color: 'F39C12'>
-	^ (self @@ EcoTDeer) size * 10
+	^ ((self @@ EcoTDeer) size) / 25
 ]
 
-{ #category : 'as yet unclassified' }
+{ #category : 'probes' }
+EcoTModel >> numberOfTourists [
+
+	<probeNamed: 'tourists' color: '161617'>
+	^ ((self @@ EcoTTourist ) size) /20
+]
+
+{ #category : 'probes' }
+EcoTModel >> percentageGrassB80 [
+
+	<probeNamed: 'biomass>80 size' color: '0E0EDE'>
+	^ (self cells select: [ :c | c grassB > 0.8 ]) size / 900
+]
+
+{ #category : 'export' }
+EcoTModel >> saveDataToFile: aFileReference [ 
+
+	| data columnNames |
+	data := self data.
+
+	data ifNil: [ ^ self ].
+	data ifEmpty: [ ^ self ].
+	aFileReference ifNil: [ ^ self ].
+	
+	aFileReference writeStreamDo: [ :stream |
+		columnNames := data first keys.
+		stream nextPutAll: (',' join: columnNames); cr.
+		
+		data do: [ :row |
+			stream nextPutAll: (',' join: row); cr ] ].
+
+
+]
+
+{ #category : 'controlling' }
 EcoTModel >> step [
 	"This method will be executed at every step of the simulation"
 
@@ -83,5 +124,19 @@ EcoTModel >> step [
 	self cells do: #calculateGrowth .
 	(self cells select: [:c | c hasNoOccupants ] ) do: #growth.
 	(self allTheEntities: EcoTDeer) do: #step. 
-	(self allTheEntities: EcoTTourist ) do: #step 
+	(self allTheEntities: EcoTTourist ) do: #step .
+	
+]
+
+{ #category : 'controlling' }
+EcoTModel >> step: t [
+	"This method will be executed at every step of the simulation"
+
+	<control>
+	self cells do: #calculateGrowth .
+	(self cells select: [:c | c hasNoOccupants ] ) do: #growth.
+	(self allTheEntities: EcoTDeer) do: #step. 
+	(self allTheEntities: EcoTTourist ) do: #step .
+	t = 2500 ifTrue: [ self saveDataToFile: ('file_tourist_', self class numberOfTourists asString, '.csv') asFileReference ]
+	
 ]

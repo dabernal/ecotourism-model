@@ -16,13 +16,6 @@ Class {
 }
 
 { #category : 'as yet unclassified' }
-EcoTDeer >> bestNeighbour [
-" Return the cell with more grassA"
-
-	^ (self plotsWithEnoughFood sorted: [ :a :b | a grassA > b grassA ]) first
-]
-
-{ #category : 'as yet unclassified' }
 EcoTDeer >> eat [
 
 	self cell biomass > meal_size 
@@ -74,62 +67,15 @@ EcoTDeer >> energy: anObject [
 	energy := anObject
 ]
 
-{ #category : 'accessing' }
-EcoTDeer >> energy_loss_flee [
-
-	^ energy_loss_flee
-]
-
-{ #category : 'accessing' }
-EcoTDeer >> energy_loss_flee: anObject [
-
-	energy_loss_flee := anObject
-]
-
-{ #category : 'accessing' }
-EcoTDeer >> energy_loss_movement [
-
-	^ energy_loss_movement
-]
-
-{ #category : 'accessing' }
-EcoTDeer >> energy_loss_movement: anObject [
-
-	energy_loss_movement := anObject
-]
-
-{ #category : 'accessing' }
-EcoTDeer >> energy_loss_reproduction [
-
-	^ energy_loss_reproduction
-]
-
-{ #category : 'accessing' }
-EcoTDeer >> energy_loss_reproduction: anObject [
-
-	energy_loss_reproduction := anObject
-]
-
-{ #category : 'accessing' }
-EcoTDeer >> energy_loss_time [
-
-	^ energy_loss_time
-]
-
-{ #category : 'accessing' }
-EcoTDeer >> energy_loss_time: anObject [
-
-	energy_loss_time := anObject
-]
-
 { #category : 'as yet unclassified' }
 EcoTDeer >> flee [
 
-	self freeNeighbours isNotEmpty ifTrue: [  
-		self moveTo:  (self selectRandomlyFrom: self freeNeighbours )
+	self freeNeighbours ifNotEmpty: [  
+		self moveTo:  (self selectRandomlyFrom: self freeNeighbours ).
+		energy := energy - energy_loss_flee
 			
 	].
-	energy := energy - energy_loss_flee 
+	 
 	
 ]
 
@@ -141,25 +87,13 @@ EcoTDeer >> freeNeighbours [
 		 
 ]
 
-{ #category : 'accessing' }
-EcoTDeer >> hunger_threshold [
-
-	^ hunger_threshold
-]
-
-{ #category : 'accessing' }
-EcoTDeer >> hunger_threshold: anObject [
-
-	hunger_threshold := anObject
-]
-
 { #category : 'as yet unclassified' }
 EcoTDeer >> initialize [ 
 	super initialize .
 	energy := 0.5.
 	meal_size := 0.9.
 	energy_loss_time := 0.01.
-	energy_loss_reproduction := 0.5.
+	energy_loss_reproduction := 0.4.
 	energy_loss_movement := 0.1.
 	energy_loss_flee := 2.5*energy_loss_movement .
 	reproduction_prob := 0.01.
@@ -168,36 +102,25 @@ EcoTDeer >> initialize [
 	
 ]
 
-{ #category : 'accessing' }
-EcoTDeer >> meal_size [
-
-	^ meal_size
-]
-
-{ #category : 'accessing' }
-EcoTDeer >> meal_size: anObject [
-
-	meal_size := anObject
-]
-
 { #category : 'as yet unclassified' }
 EcoTDeer >> move [
-
-	self freeNeighbours isNotEmpty ifTrue: [  
-		self plotsWithEnoughFood isNotEmpty 
-			ifFalse: [self moveTo:  (self selectRandomlyFrom: self freeNeighbours )]
-			ifTrue: [self moveTo:  self bestNeighbour ]
-	].
-	energy := energy - energy_loss_movement 
+	" The deer moves if there is an empty plot around and if there is enough food to the one with more grassA"
+	| freeNeighbours plotsWithEnoughFood bestNeighbour |
 	
-]
-
-{ #category : 'as yet unclassified' }
-EcoTDeer >> plotsWithEnoughFood [
-|threshhold|
-
-	threshhold := energy_loss_time + energy_loss_movement .
-	^self freeNeighbours select: [ :c | c biomass > threshhold  ]
+	freeNeighbours := self freeNeighbours.
+	freeNeighbours ifEmpty: [ ^ self ].
+	
+	plotsWithEnoughFood := freeNeighbours select: [ :c |
+		c biomass > (energy_loss_time + energy_loss_movement) ].
+	
+	bestNeighbour := plotsWithEnoughFood 
+		ifEmpty: [ self selectRandomlyFrom: freeNeighbours ]
+		ifNotEmpty: [ (plotsWithEnoughFood sorted: [ :a :b | a grassA > b grassA ]) first].
+	
+	self moveTo: bestNeighbour.
+	energy := energy - energy_loss_movement.
+	
+	
 ]
 
 { #category : 'as yet unclassified' }
@@ -210,33 +133,25 @@ EcoTDeer >> pov [
 { #category : 'as yet unclassified' }
 EcoTDeer >> reproduce [
 " create a new deer"
-	(self freeNeighbours isNotEmpty) 
-		ifTrue: [ 
-			self cormasModel newEntity: EcoTDeer locatedAt: (self selectRandomlyFrom: self freeNeighbours).
-			energy:= energy - energy_loss_reproduction ]
-]
-
-{ #category : 'accessing' }
-EcoTDeer >> reproduction_prob [
-
-	^ reproduction_prob
-]
-
-{ #category : 'accessing' }
-EcoTDeer >> reproduction_prob: anObject [
-
-	reproduction_prob := anObject
+	self freeNeighbours ifNotEmpty:[ 
+		self cormasModel newEntity: EcoTDeer locatedAt: (self selectRandomlyFrom: self freeNeighbours).
+		energy:= energy - energy_loss_reproduction ]
 ]
 
 { #category : 'as yet unclassified' }
 EcoTDeer >> step [ 
 
-	self touristAround isNotEmpty ifTrue: [self flee ]
-	ifFalse: [  
-	(energy < hunger_threshold) 
-		ifTrue: [self eat]
-		ifFalse: [(self random < reproduction_prob ) ifTrue: [self reproduce] ].
-	self move.].
+	(self touristAround isNotEmpty) 
+		ifTrue: [self flee ]
+		ifFalse: [  
+			(energy < hunger_threshold) 
+				ifTrue: [ self eat ]
+				ifFalse: [(self random < reproduction_prob ) ifTrue: [self reproduce. self eat] ].
+			self move
+		].
+	
+	energy := energy - energy_loss_time .
+	
 	(energy < 0.0)
 		ifTrue: [self die]. 
 ]

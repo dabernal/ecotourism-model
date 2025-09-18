@@ -2,11 +2,24 @@ Class {
 	#name : 'EcoTTourist',
 	#superclass : 'CMAgent',
 	#instVars : [
-		'degradation_visitor'
+		'degradation_visitor',
+		'deersHumanEncounters'
 	],
 	#category : 'Ecotourism-Model',
 	#package : 'Ecotourism-Model'
 }
+
+{ #category : 'accessing' }
+EcoTTourist >> deersHumanEncounters [
+
+	^ deersHumanEncounters
+]
+
+{ #category : 'accessing' }
+EcoTTourist >> deersHumanEncounters: anObject [
+
+	^ deersHumanEncounters := anObject
+]
 
 { #category : 'accessing' }
 EcoTTourist >> degradeGrass [
@@ -26,7 +39,8 @@ EcoTTourist >> freeNeighbours [
 { #category : 'initialization' }
 EcoTTourist >> initialize [ 
  	super initialize .
-	degradation_visitor := 0.1
+	degradation_visitor := 0.1.
+	deersHumanEncounters := 0
 ]
 
 { #category : 'accessing' }
@@ -35,8 +49,10 @@ EcoTTourist >> move [
 	self neighbourPlotWithDeer ifEmpty: [
 		freeNeighbours := self freeNeighbours.
 		
-		freeNeighbours ifNotEmpty: [
+		freeNeighbours ifNotEmpty: [ 
 			self moveTo: (self selectRandomlyFrom: freeNeighbours) ] ]
+		ifNotEmpty: [ deersHumanEncounters := (self neighbourPlotWithDeer) size]
+	
 ]
 
 { #category : 'accessing' }
@@ -56,5 +72,7 @@ EcoTTourist >> pov [
 EcoTTourist >> step [
 
 	self move.
-	self degradeGrass 
+	self degradeGrass.
+	
+	 
 ]
